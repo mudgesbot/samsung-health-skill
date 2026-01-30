@@ -427,6 +427,135 @@ def workout(ctx: click.Context, days: int, workout_type: str | None) -> None:
 
 
 @main.command()
+@click.pass_context
+def today(ctx: click.Context) -> None:
+    """Quick view of today's health metrics."""
+    json_output = ctx.obj.get("json", False)
+
+    try:
+        db = get_db()
+        config = get_config()
+        summary = db.get_today_summary()
+
+        step_goal = config.get("goals.daily_steps", 10000)
+        sleep_goal = config.get("goals.sleep_hours", 8)
+
+        if json_output:
+            click.echo(json.dumps(summary, indent=2))
+            return
+
+        console.print(f"\n[bold]📅 Today ({summary['date']})[/bold]\n")
+
+        # Steps
+        step_pct = (summary["steps"] / step_goal * 100) if step_goal > 0 else 0
+        step_bar = "█" * min(int(step_pct / 10), 10) + "░" * max(10 - int(step_pct / 10), 0)
+        console.print(f"  🚶 Steps: {summary['steps']:,} / {step_goal:,} ({step_pct:.0f}%) [{step_bar}]")
+
+        # Sleep
+        if summary["sleep_hours"] > 0:
+            sleep_emoji = "✅" if summary["sleep_hours"] >= sleep_goal else "⚠️"
+            console.print(f"  😴 Sleep: {summary['sleep_hours']:.1f}h {sleep_emoji}")
+        else:
+            console.print("  😴 Sleep: No data")
+
+        # Heart rate
+        if summary["avg_hr"] > 0:
+            console.print(f"  ❤️  Heart: {summary['avg_hr']:.0f} bpm avg")
+        else:
+            console.print("  ❤️  Heart: No data yet")
+
+        # Workouts
+        if summary["workouts"] > 0:
+            console.print(f"  🏋️  Workouts: {summary['workouts']}")
+        else:
+            console.print("  🏋️  Workouts: None yet")
+
+        # SpO2
+        if summary["spo2"]:
+            spo2_emoji = "✅" if summary["spo2"] >= 95 else "⚠️" if summary["spo2"] >= 90 else "🔴"
+            console.print(f"  🫁 SpO2: {summary['spo2']}% {spo2_emoji}")
+
+        console.print()
+
+    except FileNotFoundError as e:
+        console.print(f"[red]{e}[/red]")
+
+
+@main.command()
+@click.option("--days", "-d", default=7, help="Number of days to analyze")
+@click.pass_context
+def spo2(ctx: click.Context, days: int) -> None:
+    """Analyze blood oxygen saturation."""
+    json_output = ctx.obj.get("json", False)
+
+    try:
+        db = get_db()
+
+        stats = db.get_spo2_stats(days=days)
+        readings = db.get_spo2_readings(days=days)
+
+        if stats["count"] == 0:
+            console.print("[yellow]No SpO2 data found for this period[/yellow]")
+            return
+
+        if json_output:
+            output = {
+                "period_days": days,
+                "statistics": stats,
+                "readings": readings.to_dict(orient="records") if not readings.empty else [],
+            }
+            click.echo(json.dumps(output, indent=2))
+            return
+
+        console.print(f"\n[bold]🫁 Blood Oxygen Analysis ({days} days)[/bold]\n")
+
+        # Summary
+        avg_emoji = "✅" if stats["avg_spo2"] >= 95 else "⚠️" if stats["avg_spo2"] >= 90 else "🔴"
+        console.print(f"  Average: {stats['avg_spo2']}% {avg_emoji}")
+        console.print(f"  Range: {stats['min_spo2']}% - {stats['max_spo2']}%")
+        console.print(f"  Readings: {stats['count']}")
+
+        # Sparkline
+        if not readings.empty:
+            spo2_values = readings["spo2"].tolist()[::-1]
+            console.print(f"  Trend: {make_sparkline(spo2_values, 14)}")
+
+        # Daily breakdown
+        if not readings.empty:
+            daily = readings.groupby("date").agg({
+                "spo2": ["mean", "min", "max", "count"]
+            }).round(1)
+            daily.columns = ["avg", "min", "max", "count"]
+            daily = daily.reset_index().sort_values("date", ascending=False)
+
+            console.print()
+            table = Table(title="Daily SpO2", show_header=True)
+            table.add_column("Date", style="cyan")
+            table.add_column("Avg", justify="right")
+            table.add_column("Min", justify="right")
+            table.add_column("Max", justify="right")
+            table.add_column("Readings", justify="right", style="dim")
+
+            for _, row in daily.head(10).iterrows():
+                avg_color = "green" if row["avg"] >= 95 else "yellow" if row["avg"] >= 90 else "red"
+                table.add_row(
+                    row["date"],
+                    f"[{avg_color}]{row['avg']:.0f}%[/{avg_color}]",
+                    f"{row['min']:.0f}%",
+                    f"{row['max']:.0f}%",
+                    f"{int(row['count'])}",
+                )
+
+            console.print(table)
+
+        console.print()
+        console.print("  [dim]Normal SpO2: 95-100% | Below 90% = concerning[/dim]")
+
+    except FileNotFoundError as e:
+        console.print(f"[red]{e}[/red]")
+
+
+@main.command()
 @click.option("--days", "-d", default=7, help="Number of days to analyze")
 @click.pass_context
 def report(ctx: click.Context, days: int) -> None:

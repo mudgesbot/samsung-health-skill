@@ -351,6 +351,135 @@ class HealthDatabase:
         }
 
 
+    def get_spo2_readings(
+        self, days: int = 7, end_date: datetime | None = None
+    ) -> pd.DataFrame:
+        """Get SpO2 (oxygen saturation) readings.
+
+        Args:
+            days: Number of days to look back
+            end_date: End date for the query (defaults to now)
+
+        Returns:
+            DataFrame with SpO2 readings
+        """
+        end_date = end_date or datetime.now()
+        start_date = end_date - timedelta(days=days)
+        start_ms = int(start_date.timestamp() * 1000)
+        end_ms = int(end_date.timestamp() * 1000)
+
+        with self.connection() as conn:
+            query = """
+                SELECT 
+                    datetime(time/1000, 'unixepoch', 'localtime') as time,
+                    date(time/1000, 'unixepoch', 'localtime') as date,
+                    percentage as spo2
+                FROM oxygen_saturation_record_table
+                WHERE time >= ? AND time <= ?
+                ORDER BY time DESC
+            """
+            df = pd.read_sql_query(query, conn, params=(start_ms, end_ms))
+        return df
+
+    def get_spo2_stats(
+        self, days: int = 7, end_date: datetime | None = None
+    ) -> dict[str, Any]:
+        """Get SpO2 statistics for the period.
+
+        Args:
+            days: Number of days to look back
+            end_date: End date for the query (defaults to now)
+
+        Returns:
+            Dict with SpO2 statistics
+        """
+        readings = self.get_spo2_readings(days, end_date)
+        if readings.empty:
+            return {"avg_spo2": 0, "min_spo2": 0, "max_spo2": 0, "count": 0}
+
+        return {
+            "avg_spo2": round(readings["spo2"].mean(), 1),
+            "min_spo2": int(readings["spo2"].min()),
+            "max_spo2": int(readings["spo2"].max()),
+            "count": len(readings),
+        }
+
+    def get_today_summary(self) -> dict[str, Any]:
+        """Get quick summary for today.
+
+        Returns:
+            Dict with today's health metrics
+        """
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+        today_ms = int(today.timestamp() * 1000)
+        tomorrow_ms = int(tomorrow.timestamp() * 1000)
+
+        summary = {
+            "date": today.strftime("%Y-%m-%d"),
+            "steps": 0,
+            "sleep_hours": 0,
+            "avg_hr": 0,
+            "workouts": 0,
+            "spo2": None,
+        }
+
+        with self.connection() as conn:
+            # Steps today
+            cursor = conn.execute("""
+                SELECT SUM(count) as steps FROM steps_record_table
+                WHERE local_date_time_start_time >= ? AND local_date_time_start_time < ?
+            """, (today_ms, tomorrow_ms))
+            row = cursor.fetchone()
+            if row and row["steps"]:
+                summary["steps"] = int(row["steps"])
+
+            # Last night's sleep (ended today or yesterday evening start)
+            yesterday = today - timedelta(days=1)
+            yesterday_ms = int(yesterday.timestamp() * 1000)
+            cursor = conn.execute("""
+                SELECT (end_time - start_time) / 3600000.0 as hours
+                FROM sleep_session_record_table
+                WHERE end_time >= ? AND end_time < ?
+                ORDER BY end_time DESC LIMIT 1
+            """, (today_ms, tomorrow_ms))
+            row = cursor.fetchone()
+            if row and row["hours"]:
+                summary["sleep_hours"] = round(row["hours"], 1)
+
+            # Heart rate today
+            cursor = conn.execute("""
+                SELECT AVG(s.beats_per_minute) as avg_hr
+                FROM heart_rate_record_series_table s
+                JOIN heart_rate_record_table h ON s.parent_key = h.row_id
+                WHERE h.start_time >= ? AND h.start_time < ?
+            """, (today_ms, tomorrow_ms))
+            row = cursor.fetchone()
+            if row and row["avg_hr"]:
+                summary["avg_hr"] = round(row["avg_hr"], 1)
+
+            # Workouts today
+            cursor = conn.execute("""
+                SELECT COUNT(*) as count FROM exercise_session_record_table
+                WHERE start_time >= ? AND start_time < ?
+            """, (today_ms, tomorrow_ms))
+            row = cursor.fetchone()
+            if row:
+                summary["workouts"] = row["count"]
+
+            # Latest SpO2
+            cursor = conn.execute("""
+                SELECT percentage as spo2 FROM oxygen_saturation_record_table
+                WHERE time >= ? AND time < ?
+                ORDER BY time DESC LIMIT 1
+            """, (today_ms, tomorrow_ms))
+            row = cursor.fetchone()
+            if row and row["spo2"]:
+                summary["spo2"] = int(row["spo2"])
+
+        return summary
+
+
 # Global database instance
 _db: HealthDatabase | None = None
 
