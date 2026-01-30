@@ -14,6 +14,19 @@ from .sync import get_last_sync_time, sync_data
 
 console = Console()
 
+# Input validation constants
+MAX_DAYS = 3650  # 10 years max
+MIN_DAYS = 1
+
+
+def validate_days(ctx: click.Context, param: click.Parameter, value: int) -> int:
+    """Validate days parameter is within reasonable range."""
+    if value < MIN_DAYS:
+        raise click.BadParameter(f"Must be at least {MIN_DAYS}")
+    if value > MAX_DAYS:
+        raise click.BadParameter(f"Cannot exceed {MAX_DAYS} days (10 years)")
+    return value
+
 
 def make_sparkline(values: list[float], width: int = 10) -> str:
     """Create a simple sparkline from values."""
@@ -131,7 +144,7 @@ def status(ctx: click.Context) -> None:
 
 
 @main.command()
-@click.option("--days", "-d", default=7, help="Number of days to analyze")
+@click.option("--days", "-d", default=7, callback=validate_days, help="Number of days to analyze (1-3650)")
 @click.option("--date", "target_date", type=str, help="Specific date (YYYY-MM-DD)")
 @click.pass_context
 def sleep(ctx: click.Context, days: int, target_date: str | None) -> None:
@@ -218,7 +231,7 @@ def sleep(ctx: click.Context, days: int, target_date: str | None) -> None:
 
 
 @main.command()
-@click.option("--days", "-d", default=7, help="Number of days to analyze")
+@click.option("--days", "-d", default=7, callback=validate_days, help="Number of days to analyze (1-3650)")
 @click.option("--week", "-w", is_flag=True, help="Show weekly summary")
 @click.option("--month", "-m", is_flag=True, help="Show monthly summary")
 @click.pass_context
@@ -295,7 +308,7 @@ def steps(ctx: click.Context, days: int, week: bool, month: bool) -> None:
 
 
 @main.command()
-@click.option("--days", "-d", default=7, help="Number of days to analyze")
+@click.option("--days", "-d", default=7, callback=validate_days, help="Number of days to analyze (1-3650)")
 @click.pass_context
 def heart(ctx: click.Context, days: int) -> None:
     """Analyze heart rate data."""
@@ -358,7 +371,7 @@ def heart(ctx: click.Context, days: int) -> None:
 
 
 @main.command()
-@click.option("--days", "-d", default=30, help="Number of days to analyze")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days to analyze (1-3650)")
 @click.option("--type", "workout_type", type=str, help="Filter by workout type")
 @click.pass_context
 def workout(ctx: click.Context, days: int, workout_type: str | None) -> None:
@@ -482,7 +495,7 @@ def today(ctx: click.Context) -> None:
 
 
 @main.command()
-@click.option("--days", "-d", default=7, help="Number of days to analyze")
+@click.option("--days", "-d", default=7, callback=validate_days, help="Number of days to analyze (1-3650)")
 @click.pass_context
 def spo2(ctx: click.Context, days: int) -> None:
     """Analyze blood oxygen saturation."""
@@ -556,7 +569,7 @@ def spo2(ctx: click.Context, days: int) -> None:
 
 
 @main.command()
-@click.option("--days", "-d", default=7, help="Number of days to analyze")
+@click.option("--days", "-d", default=7, callback=validate_days, help="Number of days to analyze (1-3650)")
 @click.pass_context
 def report(ctx: click.Context, days: int) -> None:
     """Generate comprehensive health report."""

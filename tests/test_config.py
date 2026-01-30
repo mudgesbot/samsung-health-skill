@@ -17,7 +17,9 @@ class TestConfig:
             config_path = Path(tmpdir) / "config.yaml"
             config = Config(config_path)
 
-            assert config.get("google_drive.folder_id") == DEFAULT_CONFIG["google_drive"]["folder_id"]
+            # Default folder_id and account should be empty (user must configure)
+            assert config.get("google_drive.folder_id") == ""
+            assert config.get("google_drive.account") == ""
             assert config.get("goals.daily_steps") == 10000
             assert config.get("goals.sleep_hours") == 8
 
@@ -27,7 +29,8 @@ class TestConfig:
             config_path = Path(tmpdir) / "config.yaml"
             config = Config(config_path)
 
-            assert config.get("google_drive.account") == "your.email@gmail.com"
+            # Test default empty values and fallback
+            assert config.get("google_drive.account") == ""
             assert config.get("nonexistent.key", "default") == "default"
 
     def test_set_and_save(self):
@@ -37,11 +40,13 @@ class TestConfig:
             config = Config(config_path)
 
             config.set("goals.daily_steps", 15000)
+            config.set("google_drive.folder_id", "test_folder_id")
             config.save()
 
             # Reload and verify
             config2 = Config(config_path)
             assert config2.get("goals.daily_steps") == 15000
+            assert config2.get("google_drive.folder_id") == "test_folder_id"
 
 
 class TestSleepStages:

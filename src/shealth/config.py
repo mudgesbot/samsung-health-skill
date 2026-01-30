@@ -14,17 +14,18 @@ DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "health.db"
 DEFAULT_CACHE_DIR = DEFAULT_DATA_DIR / "cache"
 
 # Default configuration
+# Users must set google_drive.folder_id and google_drive.account in their config
 DEFAULT_CONFIG = {
     "google_drive": {
-        "folder_id": "YOUR_FOLDER_ID",
-        "account": "your.email@gmail.com",
+        "folder_id": "",  # Google Drive folder ID containing Health Connect.zip
+        "account": "",    # Google account email for gog CLI
         "file_name": "Health Connect.zip",
     },
     "goals": {
         "daily_steps": 10000,
         "sleep_hours": 8,
     },
-    "timezone": "Europe/Copenhagen",
+    "timezone": "UTC",
 }
 
 # Sleep stage mapping

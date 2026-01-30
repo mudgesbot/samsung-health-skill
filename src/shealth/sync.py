@@ -187,6 +187,25 @@ def sync_data(force: bool = False) -> bool:
     """
     config = get_config()
 
+    # Validate configuration
+    folder_id = config.get("google_drive.folder_id")
+    account = config.get("google_drive.account")
+
+    if not folder_id or not account:
+        console.print("[red]Error: Google Drive not configured.[/red]")
+        console.print()
+        console.print("Please set up your config at ~/.config/samsung-health/config.yaml:")
+        console.print()
+        console.print("[cyan]google_drive:[/cyan]")
+        console.print("[cyan]  folder_id: \"YOUR_FOLDER_ID\"[/cyan]")
+        console.print("[cyan]  account: \"your.email@gmail.com\"[/cyan]")
+        console.print()
+        console.print("To find your folder ID:")
+        console.print("1. Open Google Drive in browser")
+        console.print("2. Navigate to your HealthData folder")
+        console.print("3. Copy the ID from the URL: drive.google.com/drive/folders/[bold]THIS_IS_YOUR_ID[/bold]")
+        return False
+
     # Check if gog CLI is available
     result = subprocess.run(["which", "gog"], capture_output=True)
     if result.returncode != 0:
@@ -194,8 +213,8 @@ def sync_data(force: bool = False) -> bool:
         return False
 
     console.print(f"[bold]🔄 Syncing Samsung Health data...[/bold]")
-    console.print(f"   Folder: {config.get('google_drive.folder_id')}")
-    console.print(f"   Account: {config.get('google_drive.account')}")
+    console.print(f"   Folder: {folder_id}")
+    console.print(f"   Account: {account}")
     console.print()
 
     return download_health_data(force=force)
