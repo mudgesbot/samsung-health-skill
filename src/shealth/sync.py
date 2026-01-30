@@ -56,7 +56,7 @@ def download_health_data(force: bool = False) -> bool:
                 "gog",
                 "drive",
                 "ls",
-                "--folder-id",
+                "--parent",
                 folder_id,
                 "--account",
                 account,
@@ -74,7 +74,8 @@ def download_health_data(force: bool = False) -> bool:
         import json
 
         try:
-            files = json.loads(result.stdout)
+            response = json.loads(result.stdout)
+            files = response.get("files", [])
         except json.JSONDecodeError:
             console.print(f"[red]Failed to parse Google Drive response[/red]")
             return False
@@ -97,7 +98,7 @@ def download_health_data(force: bool = False) -> bool:
                 "drive",
                 "download",
                 file_id,
-                "--output",
+                "--out",
                 str(tmp_zip),
                 "--account",
                 account,
