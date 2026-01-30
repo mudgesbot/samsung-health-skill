@@ -76,8 +76,10 @@ def download_health_data(force: bool = False) -> bool:
         try:
             response = json.loads(result.stdout)
             files = response.get("files", [])
-        except json.JSONDecodeError:
-            console.print(f"[red]Failed to parse Google Drive response[/red]")
+        except json.JSONDecodeError as e:
+            preview = result.stdout[:200] if result.stdout else "(empty)"
+            console.print(f"[red]Failed to parse Google Drive response: {e}[/red]")
+            console.print(f"[dim]Response preview: {preview}[/dim]")
             return False
 
         # Find the Health Connect zip file

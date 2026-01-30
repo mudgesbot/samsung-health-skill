@@ -37,25 +37,27 @@ class HealthDatabase:
         finally:
             conn.close()
 
+    # Allowed table names (whitelist for SQL safety)
+    KNOWN_TABLES = frozenset([
+        "sleep_session_record_table",
+        "sleep_stages_table",
+        "steps_record_table",
+        "heart_rate_record_table",
+        "heart_rate_record_series_table",
+        "heart_rate_variability_rmssd_record_table",
+        "resting_heart_rate_record_table",
+        "exercise_session_record_table",
+        "weight_record_table",
+        "oxygen_saturation_record_table",
+    ])
+
     def get_table_counts(self) -> dict[str, int]:
         """Get record counts for all main tables."""
-        tables = [
-            "sleep_session_record_table",
-            "sleep_stages_table",
-            "steps_record_table",
-            "heart_rate_record_table",
-            "heart_rate_record_series_table",
-            "heart_rate_variability_rmssd_record_table",
-            "resting_heart_rate_record_table",
-            "exercise_session_record_table",
-            "weight_record_table",
-            "oxygen_saturation_record_table",
-        ]
-
         counts = {}
         with self.connection() as conn:
-            for table in tables:
+            for table in self.KNOWN_TABLES:
                 try:
+                    # Table name is from KNOWN_TABLES whitelist, safe to interpolate
                     cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
                     counts[table] = cursor.fetchone()[0]
                 except sqlite3.OperationalError:
