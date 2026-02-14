@@ -646,5 +646,102 @@ def report(ctx: click.Context, days: int) -> None:
         console.print(f"[red]{e}[/red]")
 
 
+@main.group()
+@click.pass_context
+def chart(ctx: click.Context) -> None:
+    """Generate charts and visualizations."""
+    pass
+
+
+@chart.command("sleep")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days (1-3650)")
+@click.option("--output", "-o", type=str, help="Output file path (default: temp file)")
+@click.pass_context
+def chart_sleep_cmd(ctx: click.Context, days: int, output: str | None) -> None:
+    """Sleep duration chart with stage breakdown."""
+    from .charts import chart_sleep
+
+    try:
+        path = chart_sleep(days=days, output=output)
+        console.print(f"[green]✓ Chart saved:[/green] {path}")
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+
+
+@chart.command("steps")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days (1-3650)")
+@click.option("--output", "-o", type=str, help="Output file path")
+@click.pass_context
+def chart_steps_cmd(ctx: click.Context, days: int, output: str | None) -> None:
+    """Daily steps bar chart."""
+    from .charts import chart_steps
+
+    try:
+        path = chart_steps(days=days, output=output)
+        console.print(f"[green]✓ Chart saved:[/green] {path}")
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+
+
+@chart.command("heart")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days (1-3650)")
+@click.option("--output", "-o", type=str, help="Output file path")
+@click.pass_context
+def chart_heart_cmd(ctx: click.Context, days: int, output: str | None) -> None:
+    """Heart rate trend with min/max band."""
+    from .charts import chart_heart
+
+    try:
+        path = chart_heart(days=days, output=output)
+        console.print(f"[green]✓ Chart saved:[/green] {path}")
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+
+
+@chart.command("spo2")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days (1-3650)")
+@click.option("--output", "-o", type=str, help="Output file path")
+@click.pass_context
+def chart_spo2_cmd(ctx: click.Context, days: int, output: str | None) -> None:
+    """Blood oxygen saturation chart."""
+    from .charts import chart_spo2
+
+    try:
+        path = chart_spo2(days=days, output=output)
+        console.print(f"[green]✓ Chart saved:[/green] {path}")
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+
+
+@chart.command("workouts")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days (1-3650)")
+@click.option("--output", "-o", type=str, help="Output file path")
+@click.pass_context
+def chart_workouts_cmd(ctx: click.Context, days: int, output: str | None) -> None:
+    """Workout frequency and duration chart."""
+    from .charts import chart_workouts
+
+    try:
+        path = chart_workouts(days=days, output=output)
+        console.print(f"[green]✓ Chart saved:[/green] {path}")
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+
+
+@chart.command("overview")
+@click.option("--days", "-d", default=30, callback=validate_days, help="Number of days (1-3650)")
+@click.option("--output", "-o", type=str, help="Output file path")
+@click.pass_context
+def chart_overview_cmd(ctx: click.Context, days: int, output: str | None) -> None:
+    """2x2 health dashboard overview."""
+    from .charts import chart_overview
+
+    try:
+        path = chart_overview(days=days, output=output)
+        console.print(f"[green]✓ Chart saved:[/green] {path}")
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+
+
 if __name__ == "__main__":
     main()

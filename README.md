@@ -12,6 +12,7 @@ A command-line tool for analyzing Samsung Health Connect data synced to Google D
 - 🏋️ **Workouts** - Exercise session history and stats
 - 📊 **Reports** - Comprehensive health summaries
 - 📅 **Today** - Quick daily snapshot
+- 📈 **Charts** - Beautiful dark-themed visualizations (sleep, steps, heart rate, SpO2, workouts, overview dashboard)
 
 ## Installation
 
@@ -108,6 +109,17 @@ shealth report --days 7
 # JSON output (for scripting)
 shealth --json status
 shealth --json sleep --days 7
+
+# Charts (generates PNG images)
+shealth chart sleep --days 30          # Sleep stages stacked bar
+shealth chart steps --days 30          # Daily steps with goal line
+shealth chart heart --days 30          # Heart rate trend with min/max band
+shealth chart spo2 --days 30           # Blood oxygen with normal range
+shealth chart workouts --days 30       # Workout frequency by type
+shealth chart overview --days 30       # 2x2 health dashboard
+
+# Save chart to specific file
+shealth chart overview -o dashboard.png
 ```
 
 ## Data Source
@@ -193,6 +205,25 @@ Samsung Health Connect can be configured to sync this data daily.
     Average: 74 bpm
     Range: 52 - 142 bpm
 ```
+
+## Charts
+
+Generate beautiful dark-themed charts for any health metric. All charts support `--days` and `--output` options.
+
+| Command | Description |
+|---------|-------------|
+| `shealth chart sleep` | Sleep duration with stage breakdown (Deep/Light/REM/Awake) |
+| `shealth chart steps` | Daily steps with goal line (green = goal met) |
+| `shealth chart heart` | Heart rate trend with min/max band |
+| `shealth chart spo2` | Blood oxygen with normal range overlay |
+| `shealth chart workouts` | Workout frequency and duration by type |
+| `shealth chart overview` | 2x2 dashboard combining all metrics |
+
+Charts are saved as PNG files (150 DPI). By default they go to a temp directory; use `-o FILE` to specify the output path.
+
+### Dependencies
+
+Charts require `matplotlib` and `numpy`, which are installed automatically with the package.
 
 ## Troubleshooting
 
